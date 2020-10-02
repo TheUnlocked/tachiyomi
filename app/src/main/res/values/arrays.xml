@@ -1,47 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="viewers">
-        <item>@string/left_to_right_viewer</item>
-        <item>@string/right_to_left_viewer</item>
-        <item>@string/vertical_viewer</item>
-        <item>@string/webtoon_viewer</item>
-    </string-array>
-
-    <string-array name="viewers_values">
-        <item>1</item>
-        <item>2</item>
-        <item>3</item>
-        <item>4</item>
-    </string-array>
-
     <string-array name="viewers_selector">
         <item>@string/default_viewer</item>
         <item>@string/left_to_right_viewer</item>
         <item>@string/right_to_left_viewer</item>
         <item>@string/vertical_viewer</item>
         <item>@string/webtoon_viewer</item>
+        <item>@string/vertical_plus_viewer</item>
     </string-array>
 
     <string-array name="reader_themes">
-        <item>@string/white_background</item>
         <item>@string/black_background</item>
+        <item>@string/gray_background</item>
+        <item>@string/white_background</item>
     </string-array>
 
     <string-array name="reader_themes_values">
-        <item>0</item>
-        <item>1</item>
-    </string-array>
-
-    <string-array name="image_decoders">
-        <item>Image</item>
-        <item>Rapid</item>
-        <item>Skia</item>
-    </string-array>
-
-    <string-array name="image_decoders_values">
-        <item>0</item>
         <item>1</item>
         <item>2</item>
+        <item>0</item>
     </string-array>
 
     <string-array name="image_scale_type">
@@ -53,13 +30,20 @@
         <item>@string/scale_type_smart_fit</item>
     </string-array>
 
-    <string-array name="image_scale_type_values">
-        <item>1</item>
-        <item>2</item>
-        <item>3</item>
-        <item>4</item>
-        <item>5</item>
-        <item>6</item>
+    <string-array name="webtoon_side_padding">
+        <item>@string/webtoon_side_padding_0</item>
+        <item>@string/webtoon_side_padding_10</item>
+        <item>@string/webtoon_side_padding_15</item>
+        <item>@string/webtoon_side_padding_20</item>
+        <item>@string/webtoon_side_padding_25</item>
+    </string-array>
+
+    <string-array name="webtoon_side_padding_values">
+        <item>0</item>
+        <item>10</item>
+        <item>15</item>
+        <item>20</item>
+        <item>25</item>
     </string-array>
 
     <string-array name="zoom_start">
@@ -82,24 +66,12 @@
         <item>@string/rotation_force_portrait</item>
         <item>@string/rotation_force_landscape</item>
     </string-array>
-    
+
     <string-array name="rotation_type_values">
         <item>1</item>
         <item>2</item>
         <item>3</item>
         <item>4</item>
-    </string-array>
-
-    <string-array name="reader_image_options">
-        <item>@string/set_as_cover</item>
-        <item>@string/action_share</item>
-        <item>@string/action_save</item>
-    </string-array>
-
-    <string-array name="reader_image_options_values">
-        <item>0</item>
-        <item>1</item>
-        <item>2</item>
     </string-array>
 
     <string-array name="color_filter_modes">
@@ -108,4 +80,15 @@
         <item>@string/filter_mode_screen</item>
     </string-array>
 
+    <string-array name="invert_tapping_mode">
+        <item>@string/tapping_inverted_none</item>
+        <item>@string/tapping_inverted_horizontal</item>
+        <item>@string/tapping_inverted_vertical</item>
+        <item>@string/tapping_inverted_both</item>
+    </string-array>
+
+    <string-array name="delete_selected_mangas">
+        <item>@string/manga_from_library</item>
+        <item>@string/downloaded_chapters</item>
+    </string-array>
 </resources>

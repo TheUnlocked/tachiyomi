@@ -26,13 +26,16 @@ class BangumiLoginActivity : AppCompatActivity() {
         val code = intent.data?.getQueryParameter("code")
         if (code != null) {
             trackManager.bangumi.login(code)
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe({
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    {
                         returnToSettings()
-                    }, {
+                    },
+                    {
                         returnToSettings()
-                    })
+                    }
+                )
         } else {
             trackManager.bangumi.logout()
             returnToSettings()
@@ -46,5 +49,4 @@ class BangumiLoginActivity : AppCompatActivity() {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         startActivity(intent)
     }
-
 }

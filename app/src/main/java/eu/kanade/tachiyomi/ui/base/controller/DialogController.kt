@@ -14,7 +14,6 @@ import com.bluelinelabs.conductor.changehandler.SimpleSwapChangeHandler
  * A controller that displays a dialog window, floating on top of its activity's window.
  * This is a wrapper over [Dialog] object like [android.app.DialogFragment].
  *
- *
  * Implementations should override this class and implement [.onCreateDialog] to create a custom dialog, such as an [android.app.AlertDialog]
  */
 abstract class DialogController : RestoreViewOnCreateController {
@@ -46,7 +45,7 @@ abstract class DialogController : RestoreViewOnCreateController {
                 dialog!!.onRestoreInstanceState(dialogState)
             }
         }
-        return View(activity) //stub view
+        return View(activity) // stub view
     }
 
     override fun onSaveViewState(view: View, outState: Bundle) {
@@ -87,16 +86,18 @@ abstract class DialogController : RestoreViewOnCreateController {
      */
     fun showDialog(router: Router, tag: String?) {
         dismissed = false
-        router.pushController(RouterTransaction.with(this)
+        router.pushController(
+            RouterTransaction.with(this)
                 .pushChangeHandler(SimpleSwapChangeHandler(false))
                 .popChangeHandler(SimpleSwapChangeHandler(false))
-                .tag(tag))
+                .tag(tag)
+        )
     }
 
     /**
      * Dismiss the dialog and pop this controller
      */
-    fun dismissDialog() {
+    private fun dismissDialog() {
         if (dismissed) {
             return
         }

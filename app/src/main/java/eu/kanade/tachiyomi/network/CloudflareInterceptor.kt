@@ -9,8 +9,12 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.Toast
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.source.online.HttpSource
+import eu.kanade.tachiyomi.util.lang.launchUI
 import eu.kanade.tachiyomi.util.system.WebViewClientCompat
+import eu.kanade.tachiyomi.util.system.WebViewUtil
 import eu.kanade.tachiyomi.util.system.isOutdated
+import eu.kanade.tachiyomi.util.system.setDefaultSettings
 import eu.kanade.tachiyomi.util.system.toast
 import okhttp3.Cookie
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -39,9 +43,17 @@ class CloudflareInterceptor(private val context: Context) : Interceptor {
 
     @Synchronized
     override fun intercept(chain: Interceptor.Chain): Response {
+        val originalRequest = chain.request()
+
+        if (!WebViewUtil.supportsWebView(context)) {
+            launchUI {
+                context.toast(R.string.information_webview_required, Toast.LENGTH_LONG)
+            }
+            return chain.proceed(originalRequest)
+        }
+
         initWebView
 
-        val originalRequest = chain.request()
         val response = chain.proceed(originalRequest)
 
         // Check if Cloudflare anti-bot is on
@@ -53,8 +65,9 @@ class CloudflareInterceptor(private val context: Context) : Interceptor {
             response.close()
             networkHelper.cookieManager.remove(originalRequest.url, COOKIE_NAMES, 0)
             val oldCookie = networkHelper.cookieManager.get(originalRequest.url)
-                    .firstOrNull { it.name == "cf_clearance" }
+                .firstOrNull { it.name == "cf_clearance" }
             resolveWithWebView(originalRequest, oldCookie)
+
             return chain.proceed(originalRequest)
         } catch (e: Exception) {
             // Because OkHttp's enqueue only handles IOExceptions, wrap the exception so that
@@ -73,24 +86,27 @@ class CloudflareInterceptor(private val context: Context) : Interceptor {
 
         var challengeFound = false
         var cloudflareBypassed = false
-        var isWebviewOutdated = false
+        var isWebViewOutdated = false
 
         val origRequestUrl = request.url.toString()
-        val headers = request.headers.toMultimap().mapValues { it.value.getOrNull(0) ?: "" }
+        val headers = request.headers.toMultimap().mapValues { it.value.getOrNull(0) ?: "" }.toMutableMap()
+        headers["X-Requested-With"] = WebViewUtil.REQUESTED_WITH
 
         handler.post {
             val webview = WebView(context)
             webView = webview
+            webview.setDefaultSettings()
 
-            webview.settings.javaScriptEnabled = true
+            // Avoid sending empty User-Agent, Chromium WebView will reset to default if empty
             webview.settings.userAgentString = request.header("User-Agent")
+                ?: HttpSource.DEFAULT_USERAGENT
 
             webview.webViewClient = object : WebViewClientCompat() {
                 override fun onPageFinished(view: WebView, url: String) {
                     fun isCloudFlareBypassed(): Boolean {
                         return networkHelper.cookieManager.get(origRequestUrl.toHttpUrl())
-                                .firstOrNull { it.name == "cf_clearance" }
-                                .let { it != null && it != oldCookie }
+                            .firstOrNull { it.name == "cf_clearance" }
+                            .let { it != null && it != oldCookie }
                     }
 
                     if (isCloudFlareBypassed()) {
@@ -108,15 +124,15 @@ class CloudflareInterceptor(private val context: Context) : Interceptor {
                 }
 
                 override fun onReceivedErrorCompat(
-                        view: WebView,
-                        errorCode: Int,
-                        description: String?,
-                        failingUrl: String,
-                        isMainFrame: Boolean
+                    view: WebView,
+                    errorCode: Int,
+                    description: String?,
+                    failingUrl: String,
+                    isMainFrame: Boolean
                 ) {
                     if (isMainFrame) {
                         if (errorCode == 503) {
-                            // Found the cloudflare challenge page.
+                            // Found the Cloudflare challenge page.
                             challengeFound = true
                         } else {
                             // Unlock thread, the challenge wasn't found.
@@ -135,7 +151,7 @@ class CloudflareInterceptor(private val context: Context) : Interceptor {
 
         handler.post {
             if (!cloudflareBypassed) {
-                isWebviewOutdated = webView?.isOutdated() == true
+                isWebViewOutdated = webView?.isOutdated() == true
             }
 
             webView?.stopLoading()
@@ -145,7 +161,7 @@ class CloudflareInterceptor(private val context: Context) : Interceptor {
         // Throw exception if we failed to bypass Cloudflare
         if (!cloudflareBypassed) {
             // Prompt user to update WebView if it seems too outdated
-            if (isWebviewOutdated) {
+            if (isWebViewOutdated) {
                 context.toast(R.string.information_webview_outdated, Toast.LENGTH_LONG)
             }
 
@@ -157,5 +173,4 @@ class CloudflareInterceptor(private val context: Context) : Interceptor {
         private val SERVER_CHECK = arrayOf("cloudflare-nginx", "cloudflare")
         private val COOKIE_NAMES = listOf("__cfduid", "cf_clearance")
     }
-
 }

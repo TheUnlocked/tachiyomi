@@ -7,7 +7,6 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ScaleXSpan
 import android.util.AttributeSet
-import android.widget.TextView
 import androidx.appcompat.widget.AppCompatTextView
 import eu.kanade.tachiyomi.widget.OutlineSpan
 
@@ -15,8 +14,8 @@ import eu.kanade.tachiyomi.widget.OutlineSpan
  * Page indicator found at the bottom of the reader
  */
 class PageIndicatorTextView(
-        context: Context,
-        attrs: AttributeSet? = null
+    context: Context,
+    attrs: AttributeSet? = null
 ) : AppCompatTextView(context, attrs) {
 
     init {
@@ -39,7 +38,7 @@ class PageIndicatorTextView(
             }
         }
 
-        super.setText(finalText, TextView.BufferType.SPANNABLE)
+        super.setText(finalText, BufferType.SPANNABLE)
     }
 
     private companion object {
@@ -48,8 +47,8 @@ class PageIndicatorTextView(
 
         // A span object with text outlining properties
         val spanOutline = OutlineSpan(
-                strokeColor = strokeColor,
-                strokeWidth = 4f
+            strokeColor = strokeColor,
+            strokeWidth = 4f
         )
     }
 }

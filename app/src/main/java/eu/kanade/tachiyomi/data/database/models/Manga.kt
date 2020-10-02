@@ -12,20 +12,28 @@ interface Manga : SManga {
 
     var last_update: Long
 
+    var date_added: Long
+
     var viewer: Int
 
     var chapter_flags: Int
+
+    var cover_last_modified: Long
 
     fun setChapterOrder(order: Int) {
         setFlags(order, SORT_MASK)
     }
 
-    private fun setFlags(flag: Int, mask: Int) {
-        chapter_flags = chapter_flags and mask.inv() or (flag and mask)
-    }
-
     fun sortDescending(): Boolean {
         return chapter_flags and SORT_MASK == SORT_DESC
+    }
+
+    fun getGenres(): List<String>? {
+        return genre?.split(", ")?.map { it.trim() }
+    }
+
+    private fun setFlags(flag: Int, mask: Int) {
+        chapter_flags = chapter_flags and mask.inv() or (flag and mask)
     }
 
     // Used to display the chapter's title one way or another
@@ -72,7 +80,8 @@ interface Manga : SManga {
 
         const val SORTING_SOURCE = 0x00000000
         const val SORTING_NUMBER = 0x00000100
-        const val SORTING_MASK = 0x00000100
+        const val SORTING_UPLOAD_DATE = 0x00000200
+        const val SORTING_MASK = 0x00000300
 
         const val DISPLAY_NAME = 0x00000000
         const val DISPLAY_NUMBER = 0x00100000
@@ -88,5 +97,4 @@ interface Manga : SManga {
             this.source = source
         }
     }
-
 }

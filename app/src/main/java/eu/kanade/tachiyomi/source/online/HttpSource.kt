@@ -5,7 +5,11 @@ import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.asObservableSuccess
 import eu.kanade.tachiyomi.network.newCallWithProgress
 import eu.kanade.tachiyomi.source.CatalogueSource
-import eu.kanade.tachiyomi.source.model.*
+import eu.kanade.tachiyomi.source.model.FilterList
+import eu.kanade.tachiyomi.source.model.MangasPage
+import eu.kanade.tachiyomi.source.model.Page
+import eu.kanade.tachiyomi.source.model.SChapter
+import eu.kanade.tachiyomi.source.model.SManga
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,7 +34,7 @@ abstract class HttpSource : CatalogueSource {
 //     * Preferences that a source may need.
 //     */
 //    val preferences: SharedPreferences by lazy {
-//        Injekt.get<Application>().getSharedPreferences("source_$id", Context.MODE_PRIVATE)
+//        Injekt.get<Application>().getSharedPreferences(source.getPreferenceKey(), Context.MODE_PRIVATE)
 //    }
 
     /**
@@ -70,7 +74,7 @@ abstract class HttpSource : CatalogueSource {
      * Headers builder for requests. Implementations can override this method for custom headers.
      */
     protected open fun headersBuilder() = Headers.Builder().apply {
-        add("User-Agent", "Mozilla/5.0 (Windows NT 6.3; WOW64)")
+        add("User-Agent", DEFAULT_USERAGENT)
     }
 
     /**
@@ -86,10 +90,10 @@ abstract class HttpSource : CatalogueSource {
      */
     override fun fetchPopularManga(page: Int): Observable<MangasPage> {
         return client.newCall(popularMangaRequest(page))
-                .asObservableSuccess()
-                .map { response ->
-                    popularMangaParse(response)
-                }
+            .asObservableSuccess()
+            .map { response ->
+                popularMangaParse(response)
+            }
     }
 
     /**
@@ -116,10 +120,10 @@ abstract class HttpSource : CatalogueSource {
      */
     override fun fetchSearchManga(page: Int, query: String, filters: FilterList): Observable<MangasPage> {
         return client.newCall(searchMangaRequest(page, query, filters))
-                .asObservableSuccess()
-                .map { response ->
-                    searchMangaParse(response)
-                }
+            .asObservableSuccess()
+            .map { response ->
+                searchMangaParse(response)
+            }
     }
 
     /**
@@ -145,10 +149,10 @@ abstract class HttpSource : CatalogueSource {
      */
     override fun fetchLatestUpdates(page: Int): Observable<MangasPage> {
         return client.newCall(latestUpdatesRequest(page))
-                .asObservableSuccess()
-                .map { response ->
-                    latestUpdatesParse(response)
-                }
+            .asObservableSuccess()
+            .map { response ->
+                latestUpdatesParse(response)
+            }
     }
 
     /**
@@ -173,10 +177,10 @@ abstract class HttpSource : CatalogueSource {
      */
     override fun fetchMangaDetails(manga: SManga): Observable<SManga> {
         return client.newCall(mangaDetailsRequest(manga))
-                .asObservableSuccess()
-                .map { response ->
-                    mangaDetailsParse(response).apply { initialized = true }
-                }
+            .asObservableSuccess()
+            .map { response ->
+                mangaDetailsParse(response).apply { initialized = true }
+            }
     }
 
     /**
@@ -203,14 +207,14 @@ abstract class HttpSource : CatalogueSource {
      * @param manga the manga to look for chapters.
      */
     override fun fetchChapterList(manga: SManga): Observable<List<SChapter>> {
-        if (manga.status != SManga.LICENSED) {
-            return client.newCall(chapterListRequest(manga))
-                    .asObservableSuccess()
-                    .map { response ->
-                        chapterListParse(response)
-                    }
+        return if (manga.status != SManga.LICENSED) {
+            client.newCall(chapterListRequest(manga))
+                .asObservableSuccess()
+                .map { response ->
+                    chapterListParse(response)
+                }
         } else {
-            return Observable.error(Exception("Licensed - No chapters to show"))
+            Observable.error(Exception("Licensed - No chapters to show"))
         }
     }
 
@@ -238,10 +242,10 @@ abstract class HttpSource : CatalogueSource {
      */
     override fun fetchPageList(chapter: SChapter): Observable<List<Page>> {
         return client.newCall(pageListRequest(chapter))
-                .asObservableSuccess()
-                .map { response ->
-                    pageListParse(response)
-                }
+            .asObservableSuccess()
+            .map { response ->
+                pageListParse(response)
+            }
     }
 
     /**
@@ -269,8 +273,8 @@ abstract class HttpSource : CatalogueSource {
      */
     open fun fetchImageUrl(page: Page): Observable<String> {
         return client.newCall(imageUrlRequest(page))
-                .asObservableSuccess()
-                .map { imageUrlParse(it) }
+            .asObservableSuccess()
+            .map { imageUrlParse(it) }
     }
 
     /**
@@ -297,7 +301,7 @@ abstract class HttpSource : CatalogueSource {
      */
     fun fetchImage(page: Page): Observable<Response> {
         return client.newCallWithProgress(imageRequest(page), page)
-                .asObservableSuccess()
+            .asObservableSuccess()
     }
 
     /**
@@ -336,16 +340,18 @@ abstract class HttpSource : CatalogueSource {
      * @param orig the full url.
      */
     private fun getUrlWithoutDomain(orig: String): String {
-        try {
+        return try {
             val uri = URI(orig)
             var out = uri.path
-            if (uri.query != null)
+            if (uri.query != null) {
                 out += "?" + uri.query
-            if (uri.fragment != null)
+            }
+            if (uri.fragment != null) {
                 out += "#" + uri.fragment
-            return out
+            }
+            out
         } catch (e: URISyntaxException) {
-            return orig
+            orig
         }
     }
 
@@ -363,4 +369,8 @@ abstract class HttpSource : CatalogueSource {
      * Returns the list of filters for the source.
      */
     override fun getFilterList() = FilterList()
+
+    companion object {
+        const val DEFAULT_USERAGENT = "Mozilla/5.0 (Windows NT 6.3; WOW64)"
+    }
 }

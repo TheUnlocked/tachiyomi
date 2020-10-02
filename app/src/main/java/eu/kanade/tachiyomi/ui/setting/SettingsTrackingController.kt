@@ -10,21 +10,28 @@ import eu.kanade.tachiyomi.data.track.TrackService
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.data.track.bangumi.BangumiApi
 import eu.kanade.tachiyomi.data.track.shikimori.ShikimoriApi
-import eu.kanade.tachiyomi.util.preference.*
+import eu.kanade.tachiyomi.ui.setting.track.TrackLoginDialog
+import eu.kanade.tachiyomi.ui.setting.track.TrackLogoutDialog
+import eu.kanade.tachiyomi.util.preference.defaultValue
+import eu.kanade.tachiyomi.util.preference.infoPreference
+import eu.kanade.tachiyomi.util.preference.initThenAdd
+import eu.kanade.tachiyomi.util.preference.onClick
+import eu.kanade.tachiyomi.util.preference.preferenceCategory
+import eu.kanade.tachiyomi.util.preference.switchPreference
+import eu.kanade.tachiyomi.util.preference.titleRes
 import eu.kanade.tachiyomi.util.system.getResourceColor
 import eu.kanade.tachiyomi.widget.preference.LoginPreference
-import eu.kanade.tachiyomi.widget.preference.TrackLoginDialog
-import eu.kanade.tachiyomi.widget.preference.TrackLogoutDialog
 import uy.kohesive.injekt.injectLazy
 import eu.kanade.tachiyomi.data.preference.PreferenceKeys as Keys
 
-class SettingsTrackingController : SettingsController(),
-        TrackLoginDialog.Listener,
-        TrackLogoutDialog.Listener {
+class SettingsTrackingController :
+    SettingsController(),
+    TrackLoginDialog.Listener,
+    TrackLogoutDialog.Listener {
 
     private val trackManager: TrackManager by injectLazy()
 
-    override fun setupPreferenceScreen(screen: PreferenceScreen) = with(screen) {
+    override fun setupPreferenceScreen(screen: PreferenceScreen) = screen.apply {
         titleRes = R.string.pref_category_tracking
 
         switchPreference {
@@ -42,51 +49,57 @@ class SettingsTrackingController : SettingsController(),
             }
             trackPreference(trackManager.aniList) {
                 val tabsIntent = CustomTabsIntent.Builder()
-                        .setToolbarColor(context.getResourceColor(R.attr.colorPrimary))
-                        .build()
+                    .setToolbarColor(context.getResourceColor(R.attr.colorPrimary))
+                    .build()
                 tabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
                 tabsIntent.launchUrl(activity!!, AnilistApi.authUrl())
             }
             trackPreference(trackManager.kitsu) {
-                val dialog = TrackLoginDialog(trackManager.kitsu)
+                val dialog = TrackLoginDialog(trackManager.kitsu, R.string.email)
                 dialog.targetController = this@SettingsTrackingController
                 dialog.showDialog(router)
             }
             trackPreference(trackManager.shikimori) {
                 val tabsIntent = CustomTabsIntent.Builder()
-                        .setToolbarColor(context.getResourceColor(R.attr.colorPrimary))
-                        .build()
+                    .setToolbarColor(context.getResourceColor(R.attr.colorPrimary))
+                    .build()
                 tabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
                 tabsIntent.launchUrl(activity!!, ShikimoriApi.authUrl())
             }
             trackPreference(trackManager.bangumi) {
                 val tabsIntent = CustomTabsIntent.Builder()
-                        .setToolbarColor(context.getResourceColor(R.attr.colorPrimary))
-                        .build()
+                    .setToolbarColor(context.getResourceColor(R.attr.colorPrimary))
+                    .build()
                 tabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
                 tabsIntent.launchUrl(activity!!, BangumiApi.authUrl())
             }
         }
+        preferenceCategory {
+            infoPreference(R.string.tracking_info)
+        }
     }
 
     private inline fun PreferenceScreen.trackPreference(
-            service: TrackService,
-            crossinline login: () -> Unit
+        service: TrackService,
+        crossinline login: () -> Unit
     ): LoginPreference {
-        return initThenAdd(LoginPreference(context).apply {
-            key = Keys.trackUsername(service.id)
-            title = service.name
-        }, {
-            onClick {
-                if (service.isLogged) {
-                    val dialog = TrackLogoutDialog(service)
-                    dialog.targetController = this@SettingsTrackingController
-                    dialog.showDialog(router)
-                } else {
-                    login()
+        return initThenAdd(
+            LoginPreference(context).apply {
+                key = Keys.trackUsername(service.id)
+                title = service.name
+            },
+            {
+                onClick {
+                    if (service.isLogged) {
+                        val dialog = TrackLogoutDialog(service)
+                        dialog.targetController = this@SettingsTrackingController
+                        dialog.showDialog(router)
+                    } else {
+                        login()
+                    }
                 }
             }
-        })
+        )
     }
 
     override fun onActivityResumed(activity: Activity) {
@@ -110,5 +123,4 @@ class SettingsTrackingController : SettingsController(),
     override fun trackLogoutDialogClosed(service: TrackService) {
         updatePreference(service.id)
     }
-
 }

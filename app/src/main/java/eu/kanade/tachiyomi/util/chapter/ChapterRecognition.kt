@@ -39,8 +39,9 @@ object ChapterRecognition {
 
     fun parseChapterNumber(chapter: SChapter, manga: SManga) {
         // If chapter number is known return.
-        if (chapter.chapter_number == -2f || chapter.chapter_number > -1f)
+        if (chapter.chapter_number == -2f || chapter.chapter_number > -1f) {
             return
+        }
 
         // Get chapter title with lower case
         var name = chapter.name.toLowerCase()
@@ -59,8 +60,9 @@ object ChapterRecognition {
         }
 
         // Check base case ch.xx
-        if (updateChapter(basic.find(name), chapter))
+        if (updateChapter(basic.find(name), chapter)) {
             return
+        }
 
         // Check one number occurrence.
         val occurrences: MutableList<MatchResult> = arrayListOf()
@@ -69,20 +71,23 @@ object ChapterRecognition {
         }
 
         if (occurrences.size == 1) {
-            if (updateChapter(occurrences[0], chapter))
+            if (updateChapter(occurrences[0], chapter)) {
                 return
+            }
         }
 
         // Remove manga title from chapter title.
         val nameWithoutManga = name.replace(manga.title.toLowerCase(), "").trim()
 
         // Check if first value is number after title remove.
-        if (updateChapter(withoutManga.find(nameWithoutManga), chapter))
+        if (updateChapter(withoutManga.find(nameWithoutManga), chapter)) {
             return
+        }
 
         // Take the first number encountered.
-        if (updateChapter(occurrence.find(nameWithoutManga), chapter))
+        if (updateChapter(occurrence.find(nameWithoutManga), chapter)) {
             return
+        }
     }
 
     /**
@@ -110,24 +115,28 @@ object ChapterRecognition {
      * @return decimal/alpha float value
      */
     private fun checkForDecimal(decimal: String?, alpha: String?): Float {
-        if (!decimal.isNullOrEmpty())
+        if (!decimal.isNullOrEmpty()) {
             return decimal.toFloat()
+        }
 
         if (!alpha.isNullOrEmpty()) {
-            if (alpha.contains("extra"))
+            if (alpha.contains("extra")) {
                 return .99f
+            }
 
-            if (alpha.contains("omake"))
+            if (alpha.contains("omake")) {
                 return .98f
+            }
 
-            if (alpha.contains("special"))
+            if (alpha.contains("special")) {
                 return .97f
+            }
 
-            if (alpha[0] == '.') {
+            return if (alpha[0] == '.') {
                 // Take value after (.)
-                return parseAlphaPostFix(alpha[1])
+                parseAlphaPostFix(alpha[1])
             } else {
-                return parseAlphaPostFix(alpha[0])
+                parseAlphaPostFix(alpha[0])
             }
         }
 
@@ -140,5 +149,4 @@ object ChapterRecognition {
     private fun parseAlphaPostFix(alpha: Char): Float {
         return ("0." + (alpha.toInt() - 96).toString()).toFloat()
     }
-
 }

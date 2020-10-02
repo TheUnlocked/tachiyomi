@@ -13,8 +13,8 @@ import eu.kanade.tachiyomi.ui.reader.viewer.GestureDetectorWithLongTap
  * pager can also be declared to be vertical by creating it with [isHorizontal] to false.
  */
 open class Pager(
-        context: Context,
-        isHorizontal: Boolean = true
+    context: Context,
+    isHorizontal: Boolean = true
 ) : DirectionalViewPager(context, isHorizontal) {
 
     /**
@@ -84,6 +84,8 @@ open class Pager(
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         return try {
             super.onTouchEvent(ev)
+        } catch (e: IndexOutOfBoundsException) {
+            false
         } catch (e: IllegalArgumentException) {
             false
         }
@@ -104,5 +106,4 @@ open class Pager(
     fun setGestureDetectorEnabled(enabled: Boolean) {
         isGestureDetectorEnabled = enabled
     }
-
 }

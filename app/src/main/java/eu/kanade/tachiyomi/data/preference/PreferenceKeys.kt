@@ -7,7 +7,13 @@ object PreferenceKeys {
 
     const val themeMode = "pref_theme_mode_key"
 
+    const val themeLight = "pref_theme_light_key"
+
     const val themeDark = "pref_theme_dark_key"
+
+    const val confirmExit = "pref_confirm_exit"
+
+    const val hideBottomBar = "pref_hide_bottom_bar_on_scroll"
 
     const val rotation = "pref_rotation_type_key"
 
@@ -16,6 +22,8 @@ object PreferenceKeys {
     const val doubleTapAnimationSpeed = "pref_double_tap_anim_speed"
 
     const val showPageNumber = "pref_show_page_number_key"
+
+    const val showReadingMode = "pref_show_reading_mode"
 
     const val trueColor = "pref_true_color_key"
 
@@ -51,25 +59,31 @@ object PreferenceKeys {
 
     const val readWithTapping = "reader_tap"
 
+    const val readWithTappingInverted = "reader_tapping_inverted"
+
     const val readWithLongTap = "reader_long_tap"
 
     const val readWithVolumeKeys = "reader_volume_keys"
 
     const val readWithVolumeKeysInverted = "reader_volume_keys_inverted"
 
+    const val webtoonSidePadding = "webtoon_side_padding"
+
     const val portraitColumns = "pref_library_columns_portrait_key"
 
     const val landscapeColumns = "pref_library_columns_landscape_key"
+
+    const val jumpToChapters = "jump_to_chapters"
 
     const val updateOnlyNonCompleted = "pref_update_only_non_completed_key"
 
     const val autoUpdateTrack = "pref_auto_update_manga_sync_key"
 
-    const val lastUsedCatalogueSource = "last_catalogue_source"
+    const val lastUsedSource = "last_catalogue_source"
 
     const val lastUsedCategory = "last_used_category"
 
-    const val catalogueAsList = "pref_display_catalogue_as_list"
+    const val sourceDisplayMode = "pref_display_mode_catalogue"
 
     const val enabledLanguages = "source_languages"
 
@@ -87,6 +101,8 @@ object PreferenceKeys {
 
     const val removeAfterMarkedAsRead = "pref_remove_after_marked_as_read_key"
 
+    const val removeBookmarkedChapters = "pref_remove_bookmarked"
+
     const val libraryUpdateInterval = "pref_library_update_interval_key"
 
     const val libraryUpdateRestriction = "library_update_restriction"
@@ -95,15 +111,19 @@ object PreferenceKeys {
 
     const val libraryUpdatePrioritization = "library_update_prioritization"
 
-    const val filterDownloaded = "pref_filter_downloaded_key"
+    const val downloadedOnly = "pref_downloaded_only"
 
-    const val filterUnread = "pref_filter_unread_key"
+    const val filterDownloaded = "pref_filter_library_downloaded"
 
-    const val filterCompleted = "pref_filter_completed_key"
+    const val filterUnread = "pref_filter_library_unread"
+
+    const val filterCompleted = "pref_filter_library_completed"
 
     const val librarySortingMode = "library_sorting_mode"
 
-    const val automaticUpdates = "automatic_updates"
+    const val automaticExtUpdates = "automatic_ext_updates"
+
+    const val allowNsfwSource = "allow_nsfw_source"
 
     const val startScreen = "start_screen"
 
@@ -115,11 +135,17 @@ object PreferenceKeys {
 
     const val secureScreen = "secure_screen"
 
+    const val hideNotificationContent = "hide_notification_content"
+
+    const val autoUpdateMetadata = "auto_update_metadata"
+
+    const val showLibraryUpdateErrors = "show_library_update_errors"
+
     const val downloadNew = "download_new"
 
     const val downloadNewCategories = "download_new_categories"
 
-    const val libraryAsList = "pref_display_library_as_list"
+    const val libraryDisplayMode = "pref_display_mode_library"
 
     const val lang = "app_language"
 
@@ -129,20 +155,35 @@ object PreferenceKeys {
 
     const val skipRead = "skip_read"
 
+    const val skipFiltered = "skip_filtered"
+
     const val downloadBadge = "display_download_badge"
 
-    @Deprecated("Use the preferences of the source")
-    fun sourceUsername(sourceId: Long) = "pref_source_username_$sourceId"
+    const val unreadBadge = "display_unread_badge"
 
-    @Deprecated("Use the preferences of the source")
-    fun sourcePassword(sourceId: Long) = "pref_source_password_$sourceId"
+    const val categoryTabs = "display_category_tabs"
 
-    fun sourceSharedPref(sourceId: Long) = "source_$sourceId"
+    const val alwaysShowChapterTransition = "always_show_chapter_transition"
+
+    const val searchPinnedSourcesOnly = "search_pinned_sources_only"
+
+    const val enableDoh = "enable_doh"
+
+    const val defaultChapterFilterByRead = "default_chapter_filter_by_read"
+
+    const val defaultChapterFilterByDownloaded = "default_chapter_filter_by_downloaded"
+
+    const val defaultChapterFilterByBookmarked = "default_chapter_filter_by_bookmarked"
+
+    const val defaultChapterSortBySourceOrNumber = "default_chapter_sort_by_source_or_number" // and upload date
+
+    const val defaultChapterSortByAscendingOrDescending = "default_chapter_sort_by_ascending_or_descending"
+
+    const val defaultChapterDisplayByNameOrNumber = "default_chapter_display_by_name_or_number"
 
     fun trackUsername(syncId: Int) = "pref_mangasync_username_$syncId"
 
     fun trackPassword(syncId: Int) = "pref_mangasync_password_$syncId"
 
     fun trackToken(syncId: Int) = "track_token_$syncId"
-
 }

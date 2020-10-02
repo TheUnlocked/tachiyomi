@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
+import android.os.StatFs
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.core.os.EnvironmentCompat
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.util.lang.Hash
@@ -29,21 +31,33 @@ object DiskUtil {
     }
 
     /**
+     * Gets the available space for the disk that a file path points to, in bytes.
+     */
+    fun getAvailableStorageSpace(f: UniFile): Long {
+        return try {
+            val stat = StatFs(f.uri.path)
+            stat.availableBlocksLong * stat.blockSizeLong
+        } catch (_: Exception) {
+            -1L
+        }
+    }
+
+    /**
      * Returns the root folders of all the available external storages.
      */
     fun getExternalStorages(context: Context): Collection<File> {
         val directories = mutableSetOf<File>()
         directories += ContextCompat.getExternalFilesDirs(context, null)
-                .filterNotNull()
-                .mapNotNull {
-                    val file = File(it.absolutePath.substringBefore("/Android/"))
-                    val state = EnvironmentCompat.getStorageState(file)
-                    if (state == Environment.MEDIA_MOUNTED || state == Environment.MEDIA_MOUNTED_READ_ONLY) {
-                        file
-                    } else {
-                        null
-                    }
+            .filterNotNull()
+            .mapNotNull {
+                val file = File(it.absolutePath.substringBefore("/Android/"))
+                val state = EnvironmentCompat.getStorageState(file)
+                if (state == Environment.MEDIA_MOUNTED || state == Environment.MEDIA_MOUNTED_READ_ONLY) {
+                    file
+                } else {
+                    null
                 }
+            }
 
         return directories
     }
@@ -65,7 +79,7 @@ object DiskUtil {
      * Scans the given file so that it can be shown in gallery apps, for example.
      */
     fun scanMedia(context: Context, file: File) {
-        scanMedia(context, Uri.fromFile(file))
+        scanMedia(context, file.toUri())
     }
 
     /**
@@ -85,7 +99,7 @@ object DiskUtil {
      */
     fun buildValidFilename(origName: String): String {
         val name = origName.trim('.', ' ')
-        if (name.isNullOrEmpty()) {
+        if (name.isEmpty()) {
             return "(invalid)"
         }
         val sb = StringBuilder(name.length)
@@ -114,4 +128,3 @@ object DiskUtil {
         }
     }
 }
-

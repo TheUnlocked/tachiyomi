@@ -1,157 +1,260 @@
 package eu.kanade.tachiyomi.ui.setting
 
+import android.content.Intent
 import android.os.Build
-import androidx.biometric.BiometricManager
+import android.provider.Settings
 import androidx.preference.PreferenceScreen
 import eu.kanade.tachiyomi.R
-import eu.kanade.tachiyomi.data.preference.getOrDefault
-import eu.kanade.tachiyomi.util.preference.*
+import eu.kanade.tachiyomi.data.preference.asImmediateFlow
+import eu.kanade.tachiyomi.util.preference.defaultValue
+import eu.kanade.tachiyomi.util.preference.entriesRes
+import eu.kanade.tachiyomi.util.preference.intListPreference
+import eu.kanade.tachiyomi.util.preference.listPreference
+import eu.kanade.tachiyomi.util.preference.onChange
+import eu.kanade.tachiyomi.util.preference.onClick
+import eu.kanade.tachiyomi.util.preference.preference
+import eu.kanade.tachiyomi.util.preference.preferenceCategory
+import eu.kanade.tachiyomi.util.preference.switchPreference
+import eu.kanade.tachiyomi.util.preference.titleRes
 import eu.kanade.tachiyomi.util.system.LocaleHelper
+import kotlinx.coroutines.flow.launchIn
+import java.util.Date
 import eu.kanade.tachiyomi.data.preference.PreferenceKeys as Keys
 import eu.kanade.tachiyomi.data.preference.PreferenceValues as Values
 
 class SettingsGeneralController : SettingsController() {
 
-    override fun setupPreferenceScreen(screen: PreferenceScreen) = with(screen) {
+    override fun setupPreferenceScreen(screen: PreferenceScreen) = screen.apply {
         titleRes = R.string.pref_category_general
 
-        listPreference {
-            key = Keys.lang
-            titleRes = R.string.pref_language
-            entryValues = arrayOf("", "ar", "bg", "bn", "ca", "cs", "de", "el", "en-US", "en-GB",
-                    "es", "fr", "hi", "hu", "in", "it", "ja", "ko", "lv", "ms", "nb-rNO", "nl", "pl", "pt",
-                    "pt-BR", "ro", "ru", "sc", "sr", "sv", "th", "tl", "tr", "uk", "vi", "zh-rCN")
-            entries = entryValues.map { value ->
-                val locale = LocaleHelper.getLocaleFromString(value.toString())
-                locale?.getDisplayName(locale)?.capitalize()
-                        ?: context.getString(R.string.system_default)
-            }.toTypedArray()
-            defaultValue = ""
-            summary = "%s"
-
-            onChange { newValue ->
-                val activity = activity ?: return@onChange false
-                val app = activity.application
-                LocaleHelper.changeLocale(newValue.toString())
-                LocaleHelper.updateConfiguration(app, app.resources.configuration)
-                activity.recreate()
-                true
-            }
-        }
-        listPreference {
-            key = Keys.dateFormat
-            titleRes = R.string.pref_date_format
-            entryValues = arrayOf("", "MM/dd/yy", "dd/MM/yy", "yyyy-MM-dd")
-            entries = entryValues.map { value ->
-                if (value == "") {
-                    context.getString(R.string.system_default)
-                } else {
-                    value
-                }
-            }.toTypedArray()
-            defaultValue = ""
-            summary = "%s"
-        }
-        listPreference {
-            key = Keys.themeMode
-            titleRes = R.string.pref_theme_mode
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                entriesRes = arrayOf(
-                        R.string.theme_system,
-                        R.string.theme_light,
-                        R.string.theme_dark)
-                entryValues = arrayOf(
-                        Values.THEME_MODE_SYSTEM,
-                        Values.THEME_MODE_LIGHT,
-                        Values.THEME_MODE_DARK)
-                defaultValue = Values.THEME_MODE_SYSTEM
-            } else {
-                entriesRes = arrayOf(
-                        R.string.theme_light,
-                        R.string.theme_dark)
-                entryValues = arrayOf(
-                        Values.THEME_MODE_LIGHT,
-                        Values.THEME_MODE_DARK)
-                defaultValue = Values.THEME_MODE_LIGHT
-            }
-
-            summary = "%s"
-
-            onChange {
-                activity?.recreate()
-                true
-            }
-        }
-        listPreference {
-            key = Keys.themeDark
-            titleRes = R.string.pref_theme_dark
-            entriesRes = arrayOf(
-                    R.string.theme_dark_default,
-                    R.string.theme_dark_blue,
-                    R.string.theme_dark_amoled)
-            entryValues = arrayOf(
-                    Values.THEME_DARK_DEFAULT,
-                    Values.THEME_DARK_BLUE,
-                    Values.THEME_DARK_AMOLED)
-            defaultValue = Values.THEME_DARK_DEFAULT
-            summary = "%s"
-
-            preferences.themeMode().asObservable()
-                    .subscribeUntilDestroy { isVisible = it != Values.THEME_MODE_LIGHT }
-
-            onChange {
-                if (preferences.themeMode().getOrDefault() != Values.THEME_MODE_LIGHT) {
-                    activity?.recreate()
-                }
-                true
-            }
-        }
         intListPreference {
             key = Keys.startScreen
             titleRes = R.string.pref_start_screen
-            entriesRes = arrayOf(R.string.label_library, R.string.label_recent_manga,
-                    R.string.label_recent_updates)
-            entryValues = arrayOf("1", "2", "3")
+            entriesRes = arrayOf(
+                R.string.label_library,
+                R.string.label_recent_updates,
+                R.string.label_recent_manga,
+                R.string.browse
+            )
+            entryValues = arrayOf("1", "3", "2", "4")
             defaultValue = "1"
             summary = "%s"
         }
-
-        preferenceCategory {
-            titleRes = R.string.pref_category_security
-
-            if (BiometricManager.from(context).canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS) {
-                switchPreference {
-                    key = Keys.useBiometricLock
-                    titleRes = R.string.lock_with_biometrics
-                    defaultValue = false
-                }
-                intListPreference {
-                    key = Keys.lockAppAfter
-                    titleRes = R.string.lock_when_idle
-                    val values = arrayOf("0", "1", "2", "5", "10", "-1")
-                    entries = values.mapNotNull {
-                        when (it) {
-                            "-1" -> context.getString(R.string.lock_never)
-                            "0" -> context.getString(R.string.lock_always)
-                            else -> resources?.getQuantityString(R.plurals.lock_after_mins, it.toInt(), it)
-                        }
-                    }.toTypedArray()
-                    entryValues = values
-                    defaultValue = "0"
-                    summary = "%s"
-
-                    preferences.useBiometricLock().asObservable()
-                            .subscribeUntilDestroy { isVisible = it }
+        switchPreference {
+            key = Keys.confirmExit
+            titleRes = R.string.pref_confirm_exit
+            defaultValue = false
+        }
+        switchPreference {
+            key = Keys.hideBottomBar
+            titleRes = R.string.pref_hide_bottom_bar_on_scroll
+            defaultValue = true
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            preference {
+                key = "pref_manage_notifications"
+                titleRes = R.string.pref_manage_notifications
+                onClick {
+                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    }
+                    startActivity(intent)
                 }
             }
+        }
 
-            switchPreference {
-                key = Keys.secureScreen
-                titleRes = R.string.secure_screen
-                defaultValue = false
+        preferenceCategory {
+            titleRes = R.string.pref_category_theme
+
+            listPreference {
+                key = Keys.themeMode
+                titleRes = R.string.pref_theme_mode
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    entriesRes = arrayOf(
+                        R.string.theme_system,
+                        R.string.theme_light,
+                        R.string.theme_dark
+                    )
+                    entryValues = arrayOf(
+                        Values.ThemeMode.system.name,
+                        Values.ThemeMode.light.name,
+                        Values.ThemeMode.dark.name
+                    )
+                    defaultValue = Values.ThemeMode.system.name
+                } else {
+                    entriesRes = arrayOf(
+                        R.string.theme_light,
+                        R.string.theme_dark
+                    )
+                    entryValues = arrayOf(
+                        Values.ThemeMode.light.name,
+                        Values.ThemeMode.dark.name
+                    )
+                    defaultValue = Values.ThemeMode.light.name
+                }
+
+                summary = "%s"
+
+                onChange {
+                    activity?.recreate()
+                    true
+                }
+            }
+            listPreference {
+                key = Keys.themeLight
+                titleRes = R.string.pref_theme_light
+                entriesRes = arrayOf(
+                    R.string.theme_light_default,
+                    R.string.theme_light_blue
+                )
+                entryValues = arrayOf(
+                    Values.LightThemeVariant.default.name,
+                    Values.LightThemeVariant.blue.name
+                )
+                defaultValue = Values.LightThemeVariant.default.name
+                summary = "%s"
+
+                preferences.themeMode().asImmediateFlow { isVisible = it != Values.ThemeMode.dark }
+                    .launchIn(scope)
+
+                onChange {
+                    if (preferences.themeMode().get() != Values.ThemeMode.dark) {
+                        activity?.recreate()
+                    }
+                    true
+                }
+            }
+            listPreference {
+                key = Keys.themeDark
+                titleRes = R.string.pref_theme_dark
+                entriesRes = arrayOf(
+                    R.string.theme_dark_default,
+                    R.string.theme_dark_blue,
+                    R.string.theme_dark_amoled
+                )
+                entryValues = arrayOf(
+                    Values.DarkThemeVariant.default.name,
+                    Values.DarkThemeVariant.blue.name,
+                    Values.DarkThemeVariant.amoled.name
+                )
+                defaultValue = Values.DarkThemeVariant.default.name
+                summary = "%s"
+
+                preferences.themeMode().asImmediateFlow { isVisible = it != Values.ThemeMode.light }
+                    .launchIn(scope)
+
+                onChange {
+                    if (preferences.themeMode().get() != Values.ThemeMode.light) {
+                        activity?.recreate()
+                    }
+                    true
+                }
+            }
+        }
+
+        preferenceCategory {
+            titleRes = R.string.pref_category_locale
+
+            listPreference {
+                key = Keys.lang
+                titleRes = R.string.pref_language
+
+                val langs = mutableListOf<Pair<String, String>>()
+                langs += Pair(
+                    "",
+                    "${context.getString(R.string.system_default)} (${LocaleHelper.getDisplayName("")})"
+                )
+                // Due to compatibility issues:
+                // - Hebrew: `he` is copied into `iw` at build time
+                langs += arrayOf(
+                    "ar",
+                    "be",
+                    "bg",
+                    "bn",
+                    "ca",
+                    "cs",
+                    "cv",
+                    "de",
+                    "el",
+                    "es",
+                    "es-419",
+                    "en-US",
+                    "en-GB",
+                    "fa",
+                    "fi",
+                    "fil",
+                    "fr",
+                    "he",
+                    "hi",
+                    "hr",
+                    "hu",
+                    "in",
+                    "it",
+                    "ja",
+                    "ka-rGE",
+                    "kn",
+                    "ko",
+                    "lv",
+                    "mr",
+                    "ms",
+                    "nb-rNO",
+                    "nl",
+                    "pl",
+                    "pt",
+                    "pt-BR",
+                    "ro",
+                    "ru",
+                    "sah",
+                    "sc",
+                    "sk",
+                    "sr",
+                    "sv",
+                    "th",
+                    "tr",
+                    "uk",
+                    "ur-rPK",
+                    "vi",
+                    "zh-rCN",
+                    "zh-rTW"
+                )
+                    .map {
+                        Pair(it, LocaleHelper.getDisplayName(it))
+                    }
+                    .sortedBy { it.second }
+
+                entryValues = langs.map { it.first }.toTypedArray()
+                entries = langs.map { it.second }.toTypedArray()
+                defaultValue = ""
+                summary = "%s"
+
+                onChange { newValue ->
+                    val activity = activity ?: return@onChange false
+                    val app = activity.application
+                    LocaleHelper.changeLocale(newValue.toString())
+                    LocaleHelper.updateConfiguration(app, app.resources.configuration)
+                    activity.recreate()
+                    true
+                }
+            }
+            listPreference {
+                key = Keys.dateFormat
+                titleRes = R.string.pref_date_format
+                entryValues = arrayOf("", "MM/dd/yy", "dd/MM/yy", "yyyy-MM-dd")
+
+                val now = Date().time
+                entries = entryValues.map { value ->
+                    val formattedDate = preferences.dateFormat(value.toString()).format(now)
+                    if (value == "") {
+                        "${context.getString(R.string.system_default)} ($formattedDate)"
+                    } else {
+                        "$value ($formattedDate)"
+                    }
+                }.toTypedArray()
+
+                defaultValue = ""
+                summary = "%s"
             }
         }
     }
-
 }

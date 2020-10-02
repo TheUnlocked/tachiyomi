@@ -29,8 +29,9 @@ object ImageUtil {
                 stream.read(bytes, 0, bytes.size)
             }
 
-            if (length == -1)
+            if (length == -1) {
                 return null
+            }
 
             if (bytes.compareWith(charByteArrayOf(0xFF, 0xD8, 0xFF))) {
                 return ImageType.JPG
@@ -70,5 +71,4 @@ object ImageUtil {
         GIF("image/gif", "gif"),
         WEBP("image/webp", "webp")
     }
-
 }

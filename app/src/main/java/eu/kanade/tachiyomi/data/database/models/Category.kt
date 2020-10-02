@@ -12,9 +12,6 @@ interface Category : Serializable {
 
     var flags: Int
 
-    val nameLower: String
-        get() = name.toLowerCase()
-
     companion object {
 
         fun create(name: String): Category = CategoryImpl().apply {
@@ -23,5 +20,4 @@ interface Category : Serializable {
 
         fun createDefault(): Category = create("Default").apply { id = 0 }
     }
-
 }

@@ -1,10 +1,24 @@
 package eu.kanade.tachiyomi.util.preference
 
+import androidx.annotation.StringRes
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.DrawableCompat
-import androidx.preference.*
-import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat
+import androidx.preference.CheckBoxPreference
+import androidx.preference.DialogPreference
+import androidx.preference.EditTextPreference
+import androidx.preference.ListPreference
+import androidx.preference.MultiSelectListPreference
+import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceGroup
+import androidx.preference.PreferenceManager
+import androidx.preference.PreferenceScreen
+import androidx.preference.SwitchPreferenceCompat
+import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.util.system.getResourceColor
 import eu.kanade.tachiyomi.widget.preference.IntListPreference
 import eu.kanade.tachiyomi.widget.preference.SwitchPreferenceCategory
+import eu.kanade.tachiyomi.widget.preference.SwitchSettingsPreference
 
 @DslMarker
 @Target(AnnotationTarget.TYPE)
@@ -18,12 +32,28 @@ inline fun PreferenceGroup.preference(block: (@DSL Preference).() -> Unit): Pref
     return initThenAdd(Preference(context), block)
 }
 
+inline fun PreferenceGroup.infoPreference(@StringRes infoRes: Int): Preference {
+    return initThenAdd(
+        Preference(context),
+        {
+            iconRes = R.drawable.ic_info_24dp
+            iconTint = context.getResourceColor(android.R.attr.textColorHint)
+            summaryRes = infoRes
+            isSelectable = false
+        }
+    )
+}
+
 inline fun PreferenceGroup.switchPreference(block: (@DSL SwitchPreferenceCompat).() -> Unit): SwitchPreferenceCompat {
     return initThenAdd(SwitchPreferenceCompat(context), block)
 }
 
 inline fun PreferenceGroup.switchPreferenceCategory(block: (@DSL SwitchPreferenceCategory).() -> Unit): SwitchPreferenceCategory {
     return initThenAdd(SwitchPreferenceCategory(context), block)
+}
+
+inline fun PreferenceGroup.switchSettingsPreference(block: (@DSL SwitchSettingsPreference).() -> Unit): SwitchSettingsPreference {
+    return initThenAdd(SwitchSettingsPreference(context), block)
 }
 
 inline fun PreferenceGroup.checkBoxPreference(block: (@DSL CheckBoxPreference).() -> Unit): CheckBoxPreference {
@@ -59,6 +89,13 @@ fun initDialog(dialogPreference: DialogPreference) {
         if (dialogTitle == null) {
             dialogTitle = title
         }
+    }
+}
+
+inline fun <P : Preference> PreferenceGroup.add(p: P): P {
+    return p.apply {
+        this.isIconSpaceReserved = false
+        addPreference(this)
     }
 }
 
@@ -101,7 +138,7 @@ var Preference.titleRes: Int
 var Preference.iconRes: Int
     get() = 0 // set only
     set(value) {
-        icon = VectorDrawableCompat.create(context.resources, value, context.theme)
+        icon = AppCompatResources.getDrawable(context, value)
     }
 
 var Preference.summaryRes: Int

@@ -33,13 +33,9 @@ class Kitsu(private val context: Context, id: Int) : TrackService(id) {
 
     private val api by lazy { KitsuApi(client, interceptor) }
 
-    override fun getLogo(): Int {
-        return R.drawable.tracker_kitsu
-    }
+    override fun getLogo() = R.drawable.ic_tracker_kitsu
 
-    override fun getLogoColor(): Int {
-        return Color.rgb(51, 37, 50)
-    }
+    override fun getLogoColor() = Color.rgb(51, 37, 50)
 
     override fun getStatusList(): List<Int> {
         return listOf(READING, PLAN_TO_READ, COMPLETED, ON_HOLD, DROPPED)
@@ -55,6 +51,8 @@ class Kitsu(private val context: Context, id: Int) : TrackService(id) {
             else -> ""
         }
     }
+
+    override fun getCompletionStatus(): Int = COMPLETED
 
     override fun getScoreList(): List<String> {
         val df = DecimalFormat("0.#")
@@ -75,26 +73,22 @@ class Kitsu(private val context: Context, id: Int) : TrackService(id) {
     }
 
     override fun update(track: Track): Observable<Track> {
-        if (track.total_chapters != 0 && track.last_chapter_read == track.total_chapters) {
-            track.status = COMPLETED
-        }
-
         return api.updateLibManga(track)
     }
 
     override fun bind(track: Track): Observable<Track> {
         return api.findLibManga(track, getUserId())
-                .flatMap { remoteTrack ->
-                    if (remoteTrack != null) {
-                        track.copyPersonalFrom(remoteTrack)
-                        track.media_id = remoteTrack.media_id
-                        update(track)
-                    } else {
-                        track.score = DEFAULT_SCORE
-                        track.status = DEFAULT_STATUS
-                        add(track)
-                    }
+            .flatMap { remoteTrack ->
+                if (remoteTrack != null) {
+                    track.copyPersonalFrom(remoteTrack)
+                    track.media_id = remoteTrack.media_id
+                    update(track)
+                } else {
+                    track.score = DEFAULT_SCORE
+                    track.status = DEFAULT_STATUS
+                    add(track)
                 }
+            }
     }
 
     override fun search(query: String): Observable<List<TrackSearch>> {
@@ -103,20 +97,20 @@ class Kitsu(private val context: Context, id: Int) : TrackService(id) {
 
     override fun refresh(track: Track): Observable<Track> {
         return api.getLibManga(track)
-                .map { remoteTrack ->
-                    track.copyPersonalFrom(remoteTrack)
-                    track.total_chapters = remoteTrack.total_chapters
-                    track
-                }
+            .map { remoteTrack ->
+                track.copyPersonalFrom(remoteTrack)
+                track.total_chapters = remoteTrack.total_chapters
+                track
+            }
     }
 
     override fun login(username: String, password: String): Completable {
         return api.login(username, password)
-                .doOnNext { interceptor.newAuth(it) }
-                .flatMap { api.getCurrentUser() }
-                .doOnNext { userId -> saveCredentials(username, userId) }
-                .doOnError { logout() }
-                .toCompletable()
+            .doOnNext { interceptor.newAuth(it) }
+            .flatMap { api.getCurrentUser() }
+            .doOnNext { userId -> saveCredentials(username, userId) }
+            .doOnError { logout() }
+            .toCompletable()
     }
 
     override fun logout() {
@@ -140,5 +134,4 @@ class Kitsu(private val context: Context, id: Int) : TrackService(id) {
             null
         }
     }
-
 }

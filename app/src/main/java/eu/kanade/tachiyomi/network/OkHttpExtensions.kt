@@ -1,7 +1,11 @@
 package eu.kanade.tachiyomi.network
 
 import kotlinx.coroutines.suspendCancellableCoroutine
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import rx.Observable
 import rx.Producer
 import rx.Subscription
@@ -50,22 +54,24 @@ fun Call.asObservable(): Observable<Response> {
 // Based on https://github.com/gildor/kotlin-coroutines-okhttp
 suspend fun Call.await(assertSuccess: Boolean = false): Response {
     return suspendCancellableCoroutine { continuation ->
-        enqueue(object : Callback {
-            override fun onResponse(call: Call, response: Response) {
-                if (assertSuccess && !response.isSuccessful) {
-                    continuation.resumeWithException(Exception("HTTP error ${response.code}"))
-                    return
+        enqueue(
+            object : Callback {
+                override fun onResponse(call: Call, response: Response) {
+                    if (assertSuccess && !response.isSuccessful) {
+                        continuation.resumeWithException(Exception("HTTP error ${response.code}"))
+                        return
+                    }
+
+                    continuation.resume(response)
                 }
 
-                continuation.resume(response)
+                override fun onFailure(call: Call, e: IOException) {
+                    // Don't bother with resuming the continuation if it is already cancelled.
+                    if (continuation.isCancelled) return
+                    continuation.resumeWithException(e)
+                }
             }
-
-            override fun onFailure(call: Call, e: IOException) {
-                // Don't bother with resuming the continuation if it is already cancelled.
-                if (continuation.isCancelled) return
-                continuation.resumeWithException(e)
-            }
-        })
+        )
 
         continuation.invokeOnCancellation {
             try {
@@ -88,14 +94,14 @@ fun Call.asObservableSuccess(): Observable<Response> {
 
 fun OkHttpClient.newCallWithProgress(request: Request, listener: ProgressListener): Call {
     val progressClient = newBuilder()
-            .cache(null)
-            .addNetworkInterceptor { chain ->
-                val originalResponse = chain.proceed(chain.request())
-                originalResponse.newBuilder()
-                        .body(ProgressResponseBody(originalResponse.body!!, listener))
-                        .build()
-            }
-            .build()
+        .cache(null)
+        .addNetworkInterceptor { chain ->
+            val originalResponse = chain.proceed(chain.request())
+            originalResponse.newBuilder()
+                .body(ProgressResponseBody(originalResponse.body!!, listener))
+                .build()
+        }
+        .build()
 
     return progressClient.newCall(request)
 }

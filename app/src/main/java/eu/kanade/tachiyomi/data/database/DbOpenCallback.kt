@@ -2,7 +2,12 @@ package eu.kanade.tachiyomi.data.database
 
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
-import eu.kanade.tachiyomi.data.database.tables.*
+import eu.kanade.tachiyomi.data.database.tables.CategoryTable
+import eu.kanade.tachiyomi.data.database.tables.ChapterTable
+import eu.kanade.tachiyomi.data.database.tables.HistoryTable
+import eu.kanade.tachiyomi.data.database.tables.MangaCategoryTable
+import eu.kanade.tachiyomi.data.database.tables.MangaTable
+import eu.kanade.tachiyomi.data.database.tables.TrackTable
 
 class DbOpenCallback : SupportSQLiteOpenHelper.Callback(DATABASE_VERSION) {
 
@@ -15,7 +20,7 @@ class DbOpenCallback : SupportSQLiteOpenHelper.Callback(DATABASE_VERSION) {
         /**
          * Version of the database.
          */
-        const val DATABASE_VERSION = 8
+        const val DATABASE_VERSION = 11
     }
 
     override fun onCreate(db: SupportSQLiteDatabase) = with(db) {
@@ -39,8 +44,10 @@ class DbOpenCallback : SupportSQLiteOpenHelper.Callback(DATABASE_VERSION) {
             db.execSQL(ChapterTable.sourceOrderUpdateQuery)
 
             // Fix kissmanga covers after supporting cloudflare
-            db.execSQL("""UPDATE mangas SET thumbnail_url =
-                    REPLACE(thumbnail_url, '93.174.95.110', 'kissmanga.com') WHERE source = 4""")
+            db.execSQL(
+                """UPDATE mangas SET thumbnail_url =
+                    REPLACE(thumbnail_url, '93.174.95.110', 'kissmanga.com') WHERE source = 4"""
+            )
         }
         if (oldVersion < 3) {
             // Initialize history tables
@@ -64,10 +71,20 @@ class DbOpenCallback : SupportSQLiteOpenHelper.Callback(DATABASE_VERSION) {
             db.execSQL(MangaTable.createLibraryIndexQuery)
             db.execSQL(ChapterTable.createUnreadChaptersIndexQuery)
         }
+        if (oldVersion < 9) {
+            db.execSQL(TrackTable.addStartDate)
+            db.execSQL(TrackTable.addFinishDate)
+        }
+        if (oldVersion < 10) {
+            db.execSQL(MangaTable.addCoverLastModified)
+        }
+        if (oldVersion < 11) {
+            db.execSQL(MangaTable.addDateAdded)
+            db.execSQL(MangaTable.backfillDateAdded)
+        }
     }
 
     override fun onConfigure(db: SupportSQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
     }
-
 }

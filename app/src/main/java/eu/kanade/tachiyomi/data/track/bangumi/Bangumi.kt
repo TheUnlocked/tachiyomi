@@ -34,31 +34,28 @@ class Bangumi(private val context: Context, id: Int) : TrackService(id) {
     }
 
     override fun update(track: Track): Observable<Track> {
-        if (track.total_chapters != 0 && track.last_chapter_read == track.total_chapters) {
-            track.status = COMPLETED
-        }
         return api.updateLibManga(track)
     }
 
     override fun bind(track: Track): Observable<Track> {
         return api.statusLibManga(track)
-                .flatMap {
-                    api.findLibManga(track).flatMap { remoteTrack ->
-                        if (remoteTrack != null && it != null) {
-                            track.copyPersonalFrom(remoteTrack)
-                            track.library_id = remoteTrack.library_id
-                            track.status = remoteTrack.status
-                            track.last_chapter_read = remoteTrack.last_chapter_read
-                            refresh(track)
-                        } else {
-                            // Set default fields if it's not found in the list
-                            track.score = DEFAULT_SCORE.toFloat()
-                            track.status = DEFAULT_STATUS
-                            add(track)
-                            update(track)
-                        }
+            .flatMap {
+                api.findLibManga(track).flatMap { remoteTrack ->
+                    if (remoteTrack != null && it != null) {
+                        track.copyPersonalFrom(remoteTrack)
+                        track.library_id = remoteTrack.library_id
+                        track.status = remoteTrack.status
+                        track.last_chapter_read = remoteTrack.last_chapter_read
+                        refresh(track)
+                    } else {
+                        // Set default fields if it's not found in the list
+                        track.score = DEFAULT_SCORE.toFloat()
+                        track.status = DEFAULT_STATUS
+                        add(track)
+                        update(track)
                     }
                 }
+            }
     }
 
     override fun search(query: String): Observable<List<TrackSearch>> {
@@ -67,22 +64,22 @@ class Bangumi(private val context: Context, id: Int) : TrackService(id) {
 
     override fun refresh(track: Track): Observable<Track> {
         return api.statusLibManga(track)
-                .flatMap {
-                    track.copyPersonalFrom(it!!)
-                    api.findLibManga(track)
-                            .map { remoteTrack ->
-                                if (remoteTrack != null) {
-                                    track.total_chapters = remoteTrack.total_chapters
-                                    track.status = remoteTrack.status
-                                }
-                                track
-                            }
-                }
+            .flatMap {
+                track.copyPersonalFrom(it!!)
+                api.findLibManga(track)
+                    .map { remoteTrack ->
+                        if (remoteTrack != null) {
+                            track.total_chapters = remoteTrack.total_chapters
+                            track.status = remoteTrack.status
+                        }
+                        track
+                    }
+            }
     }
 
-    override fun getLogo() = R.drawable.tracker_bangumi
+    override fun getLogo() = R.drawable.ic_tracker_bangumi
 
-    override fun getLogoColor() = Color.rgb(0xF0, 0x91, 0x99)
+    override fun getLogoColor() = Color.rgb(240, 145, 153)
 
     override fun getStatusList(): List<Int> {
         return listOf(READING, COMPLETED, ON_HOLD, DROPPED, PLANNING)
@@ -98,6 +95,8 @@ class Bangumi(private val context: Context, id: Int) : TrackService(id) {
             else -> ""
         }
     }
+
+    override fun getCompletionStatus(): Int = COMPLETED
 
     override fun login(username: String, password: String) = login(password)
 
@@ -127,7 +126,7 @@ class Bangumi(private val context: Context, id: Int) : TrackService(id) {
 
     override fun logout() {
         super.logout()
-        preferences.trackToken(this).set(null)
+        preferences.trackToken(this).delete()
         interceptor.newAuth(null)
     }
 

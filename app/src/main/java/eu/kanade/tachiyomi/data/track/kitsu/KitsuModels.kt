@@ -1,7 +1,12 @@
 package eu.kanade.tachiyomi.data.track.kitsu
 
 import androidx.annotation.CallSuper
-import com.github.salomonbrys.kotson.*
+import com.github.salomonbrys.kotson.byInt
+import com.github.salomonbrys.kotson.byString
+import com.github.salomonbrys.kotson.nullInt
+import com.github.salomonbrys.kotson.nullObj
+import com.github.salomonbrys.kotson.nullString
+import com.github.salomonbrys.kotson.obj
 import com.google.gson.JsonObject
 import eu.kanade.tachiyomi.data.database.models.Track
 import eu.kanade.tachiyomi.data.track.TrackManager
@@ -31,16 +36,15 @@ class KitsuSearchManga(obj: JsonObject) {
         cover_url = original ?: ""
         summary = synopsis
         tracking_url = KitsuApi.mangaUrl(media_id)
-        if (endDate == null) {
-            publishing_status = "Publishing"
+        publishing_status = if (endDate == null) {
+            "Publishing"
         } else {
-            publishing_status = "Finished"
+            "Finished"
         }
         publishing_type = subType ?: ""
         start_date = startDate ?: ""
     }
 }
-
 
 class KitsuLibManga(obj: JsonObject, manga: JsonObject) {
     val id by manga.byInt
@@ -78,7 +82,6 @@ class KitsuLibManga(obj: JsonObject, manga: JsonObject) {
         "planned" -> Kitsu.PLAN_TO_READ
         else -> throw Exception("Unknown status")
     }
-
 }
 
 fun Track.toKitsuStatus() = when (status) {

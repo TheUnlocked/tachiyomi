@@ -1,11 +1,22 @@
 package eu.kanade.tachiyomi.ui.library
 
 import android.view.View
+import androidx.core.view.isVisible
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.bumptech.glide.request.RequestOptions
 import eu.davidea.flexibleadapter.FlexibleAdapter
+import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.glide.GlideApp
-import eu.kanade.tachiyomi.source.LocalSource
-import kotlinx.android.synthetic.main.catalogue_list_item.*
+import eu.kanade.tachiyomi.data.glide.toMangaThumbnail
+import eu.kanade.tachiyomi.util.isLocal
+import kotlinx.android.synthetic.main.source_list_item.badges
+import kotlinx.android.synthetic.main.source_list_item.download_text
+import kotlinx.android.synthetic.main.source_list_item.local_text
+import kotlinx.android.synthetic.main.source_list_item.thumbnail
+import kotlinx.android.synthetic.main.source_list_item.title
+import kotlinx.android.synthetic.main.source_list_item.unread_text
 
 /**
  * Class used to hold the displayed data of a manga in the library, like the cover or the title.
@@ -18,8 +29,8 @@ import kotlinx.android.synthetic.main.catalogue_list_item.*
  */
 
 class LibraryListHolder(
-        private val view: View,
-        private val adapter: FlexibleAdapter<*>
+    private val view: View,
+    private val adapter: FlexibleAdapter<*>
 ) : LibraryHolder(view, adapter) {
 
     /**
@@ -32,18 +43,21 @@ class LibraryListHolder(
         // Update the title of the manga.
         title.text = item.manga.title
 
+        // For rounded corners
+        badges.clipToOutline = true
+
         // Update the unread count and its visibility.
         with(unread_text) {
-            visibility = if (item.manga.unread > 0) View.VISIBLE else View.GONE
-            text = item.manga.unread.toString()
+            isVisible = item.unreadCount > 0
+            text = item.unreadCount.toString()
         }
         // Update the download count and its visibility.
         with(download_text) {
-            visibility = if (item.downloadCount > 0) View.VISIBLE else View.GONE
+            isVisible = item.downloadCount > 0
             text = "${item.downloadCount}"
         }
-        //show local text badge if local manga
-        local_text.visibility = if (item.manga.source == LocalSource.ID) View.VISIBLE else View.GONE
+        // show local text badge if local manga
+        local_text.isVisible = item.manga.isLocal()
 
         // Create thumbnail onclick to simulate long click
         thumbnail.setOnClickListener {
@@ -53,13 +67,14 @@ class LibraryListHolder(
 
         // Update the cover.
         GlideApp.with(itemView.context).clear(thumbnail)
-        GlideApp.with(itemView.context)
-                .load(item.manga)
-                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                .centerCrop()
-                .circleCrop()
-                .dontAnimate()
-                .into(thumbnail)
-    }
 
+        val radius = view.context.resources.getDimensionPixelSize(R.dimen.card_radius)
+        val requestOptions = RequestOptions().transform(CenterCrop(), RoundedCorners(radius))
+        GlideApp.with(itemView.context)
+            .load(item.manga.toMangaThumbnail())
+            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+            .apply(requestOptions)
+            .dontAnimate()
+            .into(thumbnail)
+    }
 }

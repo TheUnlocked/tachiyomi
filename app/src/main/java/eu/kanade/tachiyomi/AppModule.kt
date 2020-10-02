@@ -13,12 +13,15 @@ import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.source.SourceManager
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import uy.kohesive.injekt.api.*
+import uy.kohesive.injekt.api.InjektModule
+import uy.kohesive.injekt.api.InjektRegistrar
+import uy.kohesive.injekt.api.addSingleton
+import uy.kohesive.injekt.api.addSingletonFactory
+import uy.kohesive.injekt.api.get
 
 class AppModule(val app: Application) : InjektModule {
 
     override fun InjektRegistrar.registerInjectables() {
-
         addSingleton(app)
 
         addSingletonFactory { PreferencesHelper(app) }
@@ -52,7 +55,5 @@ class AppModule(val app: Application) : InjektModule {
         GlobalScope.launch { get<DatabaseHelper>() }
 
         GlobalScope.launch { get<DownloadManager>() }
-
     }
-
 }

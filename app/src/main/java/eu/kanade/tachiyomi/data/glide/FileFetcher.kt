@@ -5,9 +5,14 @@ import android.util.Log
 import com.bumptech.glide.Priority
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.data.DataFetcher
-import java.io.*
+import timber.log.Timber
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.InputStream
 
-open class FileFetcher(private val file: File) : DataFetcher<InputStream> {
+open class FileFetcher(private val filePath: String = "") : DataFetcher<InputStream> {
 
     private var data: InputStream? = null
 
@@ -15,12 +20,16 @@ open class FileFetcher(private val file: File) : DataFetcher<InputStream> {
         loadFromFile(callback)
     }
 
-    protected fun loadFromFile(callback: DataFetcher.DataCallback<in InputStream>) {
+    private fun loadFromFile(callback: DataFetcher.DataCallback<in InputStream>) {
+        loadFromFile(File(filePath), callback)
+    }
+
+    protected fun loadFromFile(file: File, callback: DataFetcher.DataCallback<in InputStream>) {
         try {
             data = FileInputStream(file)
         } catch (e: FileNotFoundException) {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Failed to open file", e)
+                Timber.d(e, "Failed to open file")
             }
             callback.onLoadFailed(e)
             return

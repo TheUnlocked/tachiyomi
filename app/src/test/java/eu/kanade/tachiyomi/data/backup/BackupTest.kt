@@ -11,15 +11,22 @@ import eu.kanade.tachiyomi.CustomRobolectricGradleTestRunner
 import eu.kanade.tachiyomi.data.backup.models.Backup
 import eu.kanade.tachiyomi.data.backup.models.DHistory
 import eu.kanade.tachiyomi.data.database.DatabaseHelper
-import eu.kanade.tachiyomi.data.database.models.*
+import eu.kanade.tachiyomi.data.database.models.Category
+import eu.kanade.tachiyomi.data.database.models.Chapter
+import eu.kanade.tachiyomi.data.database.models.ChapterImpl
+import eu.kanade.tachiyomi.data.database.models.Manga
+import eu.kanade.tachiyomi.data.database.models.MangaImpl
+import eu.kanade.tachiyomi.data.database.models.TrackImpl
 import eu.kanade.tachiyomi.source.SourceManager
 import eu.kanade.tachiyomi.source.online.HttpSource
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
-import org.mockito.Mockito.*
+import org.mockito.Mockito.RETURNS_DEEP_STUBS
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.anyLong
+import org.mockito.Mockito.mock
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import rx.Observable
@@ -33,7 +40,7 @@ import uy.kohesive.injekt.api.addSingleton
  * Test class for the [BackupManager].
  * Note that this does not include the backup create/restore services.
  */
-@Config(constants = BuildConfig::class, sdk = intArrayOf(Build.VERSION_CODES.LOLLIPOP))
+@Config(constants = BuildConfig::class, sdk = [Build.VERSION_CODES.LOLLIPOP])
 @RunWith(CustomRobolectricGradleTestRunner::class)
 class BackupTest {
     // Create root object
@@ -66,7 +73,7 @@ class BackupTest {
         // Mock the source manager
         val module = object : InjektModule {
             override fun InjektRegistrar.registerInjectables() {
-                addSingleton(Mockito.mock(SourceManager::class.java, RETURNS_DEEP_STUBS))
+                addSingleton(mock(SourceManager::class.java, RETURNS_DEEP_STUBS))
             }
         }
         Injekt.importModule(module)
@@ -228,9 +235,8 @@ class BackupTest {
         val manga = getSingleManga("One Piece")
         manga.id = backupManager.databaseHelper.insertManga(manga).executeAsBlocking().insertedId()
 
-
         // Create restore list
-        val chapters = ArrayList<Chapter>()
+        val chapters = mutableListOf<Chapter>()
         for (i in 1..8) {
             val chapter = getSingleChapter("Chapter $i")
             chapter.read = true
@@ -243,7 +249,7 @@ class BackupTest {
 
         // Fetch chapters from upstream
         // Create list
-        val chaptersRemote = ArrayList<Chapter>()
+        val chaptersRemote = mutableListOf<Chapter>()
         (1..10).mapTo(chaptersRemote) { getSingleChapter("Chapter $it") }
         `when`(source.fetchChapterList(manga)).thenReturn(Observable.just(chaptersRemote))
 
@@ -278,7 +284,7 @@ class BackupTest {
 
         val historyJson = getSingleHistory(chapter)
 
-        val historyList = ArrayList<DHistory>()
+        val historyList = mutableListOf<DHistory>()
         historyList.add(historyJson)
 
         // Check parser
@@ -323,7 +329,7 @@ class BackupTest {
 
         // Check parser and restore already in database
         var trackList = listOf(track)
-        //Check parser
+        // Check parser
         var trackListJson = backupManager.parser.toJsonTree(trackList)
         var trackListRestore = backupManager.parser.fromJson<List<TrackImpl>>(trackListJson)
         backupManager.restoreTrackForManga(manga, trackListRestore)
@@ -346,7 +352,7 @@ class BackupTest {
         // Check parser and restore, track not in database
         trackList = listOf(track2)
 
-        //Check parser
+        // Check parser
         trackListJson = backupManager.parser.toJsonTree(trackList)
         trackListRestore = backupManager.parser.fromJson<List<TrackImpl>>(trackListJson)
         backupManager.restoreTrackForManga(manga2, trackListRestore)

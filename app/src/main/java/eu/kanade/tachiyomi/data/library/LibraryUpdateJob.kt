@@ -1,47 +1,63 @@
 package eu.kanade.tachiyomi.data.library
 
-import com.evernote.android.job.Job
-import com.evernote.android.job.JobManager
-import com.evernote.android.job.JobRequest
+import android.content.Context
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.Worker
+import androidx.work.WorkerParameters
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
-import eu.kanade.tachiyomi.data.preference.getOrDefault
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.util.concurrent.TimeUnit
 
-class LibraryUpdateJob : Job() {
+class LibraryUpdateJob(private val context: Context, workerParams: WorkerParameters) :
+    Worker(context, workerParams) {
 
-    override fun onRunJob(params: Params): Result {
-        LibraryUpdateService.start(context)
-        return Job.Result.SUCCESS
+    override fun doWork(): Result {
+        return if (LibraryUpdateService.start(context)) {
+            Result.success()
+        } else {
+            Result.failure()
+        }
     }
 
     companion object {
-        const val TAG = "LibraryUpdate"
+        private const val TAG = "LibraryUpdate"
 
-        fun setupTask(prefInterval: Int? = null) {
+        fun setupTask(context: Context, prefInterval: Int? = null) {
             val preferences = Injekt.get<PreferencesHelper>()
-            val interval = prefInterval ?: preferences.libraryUpdateInterval().getOrDefault()
+            val interval = prefInterval ?: preferences.libraryUpdateInterval().get()
             if (interval > 0) {
                 val restrictions = preferences.libraryUpdateRestriction()!!
                 val acRestriction = "ac" in restrictions
-                val wifiRestriction = if ("wifi" in restrictions)
-                    JobRequest.NetworkType.UNMETERED
-                else
-                    JobRequest.NetworkType.CONNECTED
+                val wifiRestriction = if ("wifi" in restrictions) {
+                    NetworkType.UNMETERED
+                } else {
+                    NetworkType.CONNECTED
+                }
 
-                JobRequest.Builder(TAG)
-                        .setPeriodic(interval * 60 * 60 * 1000L, 10 * 60 * 1000)
-                        .setRequiredNetworkType(wifiRestriction)
-                        .setRequiresCharging(acRestriction)
-                        .setRequirementsEnforced(true)
-                        .setUpdateCurrent(true)
-                        .build()
-                        .schedule()
+                val constraints = Constraints.Builder()
+                    .setRequiredNetworkType(wifiRestriction)
+                    .setRequiresCharging(acRestriction)
+                    .build()
+
+                val request = PeriodicWorkRequestBuilder<LibraryUpdateJob>(
+                    interval.toLong(),
+                    TimeUnit.HOURS,
+                    10,
+                    TimeUnit.MINUTES
+                )
+                    .addTag(TAG)
+                    .setConstraints(constraints)
+                    .build()
+
+                WorkManager.getInstance(context).enqueueUniquePeriodicWork(TAG, ExistingPeriodicWorkPolicy.REPLACE, request)
+            } else {
+                WorkManager.getInstance(context).cancelAllWorkByTag(TAG)
             }
-        }
-
-        fun cancelTask() {
-            JobManager.instance().cancelAllForTag(TAG)
         }
     }
 }

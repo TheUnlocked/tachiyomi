@@ -8,8 +8,8 @@ import com.google.android.material.R
 import com.google.android.material.appbar.AppBarLayout
 
 class ElevationAppBarLayout @JvmOverloads constructor(
-        context: Context,
-        attrs: AttributeSet? = null
+    context: Context,
+    attrs: AttributeSet? = null
 ) : AppBarLayout(context, attrs) {
 
     private var origStateAnimator: StateListAnimator? = null
@@ -18,8 +18,9 @@ class ElevationAppBarLayout @JvmOverloads constructor(
         origStateAnimator = stateListAnimator
     }
 
-    fun enableElevation() {
+    fun enableElevation(liftOnScroll: Boolean) {
         stateListAnimator = origStateAnimator
+        isLiftOnScroll = liftOnScroll
     }
 
     fun disableElevation() {
@@ -27,8 +28,10 @@ class ElevationAppBarLayout @JvmOverloads constructor(
             val objAnimator = ObjectAnimator.ofFloat(this, "elevation", 0f)
 
             // Enabled and collapsible, but not collapsed means not elevated
-            addState(intArrayOf(android.R.attr.enabled, R.attr.state_collapsible, -R.attr.state_collapsed),
-                    objAnimator)
+            addState(
+                intArrayOf(android.R.attr.enabled, R.attr.state_collapsible, -R.attr.state_collapsed),
+                objAnimator
+            )
 
             // Default enabled state
             addState(intArrayOf(android.R.attr.enabled), objAnimator)
@@ -37,5 +40,4 @@ class ElevationAppBarLayout @JvmOverloads constructor(
             addState(IntArray(0), objAnimator)
         }
     }
-
 }

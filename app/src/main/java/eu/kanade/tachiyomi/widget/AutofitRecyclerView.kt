@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.max
 
 class AutofitRecyclerView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
-        RecyclerView(context, attrs) {
+    RecyclerView(context, attrs) {
 
     private val manager = GridLayoutManager(context, 1)
 
@@ -42,5 +42,4 @@ class AutofitRecyclerView @JvmOverloads constructor(context: Context, attrs: Att
             spanCount = count
         }
     }
-
 }

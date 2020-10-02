@@ -16,8 +16,9 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Matchers.anyLong
-import org.mockito.Mockito
-import org.mockito.Mockito.*
+import org.mockito.Mockito.RETURNS_DEEP_STUBS
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.mock
 import org.robolectric.Robolectric
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
@@ -26,9 +27,8 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.InjektModule
 import uy.kohesive.injekt.api.InjektRegistrar
 import uy.kohesive.injekt.api.addSingleton
-import java.util.ArrayList
 
-@Config(constants = BuildConfig::class, sdk = intArrayOf(Build.VERSION_CODES.LOLLIPOP))
+@Config(constants = BuildConfig::class, sdk = [Build.VERSION_CODES.LOLLIPOP])
 @RunWith(CustomRobolectricGradleTestRunner::class)
 class LibraryUpdateServiceTest {
 
@@ -45,7 +45,7 @@ class LibraryUpdateServiceTest {
         // Mock the source manager
         val module = object : InjektModule {
             override fun InjektRegistrar.registerInjectables() {
-                addSingleton(Mockito.mock(SourceManager::class.java, RETURNS_DEEP_STUBS))
+                addSingleton(mock(SourceManager::class.java, RETURNS_DEEP_STUBS))
             }
         }
         Injekt.importModule(module)
@@ -59,11 +59,11 @@ class LibraryUpdateServiceTest {
     fun testLifecycle() {
         // Smoke test
         Robolectric.buildService(LibraryUpdateService::class.java)
-                .attach()
-                .create()
-                .startCommand(0, 0)
-                .destroy()
-                .get()
+            .attach()
+            .create()
+            .startCommand(0, 0)
+            .destroy()
+            .get()
     }
 
     @Test
@@ -106,7 +106,7 @@ class LibraryUpdateServiceTest {
     }
 
     private fun createChapters(vararg urls: String): List<Chapter> {
-        val list = ArrayList<Chapter>()
+        val list = mutableListOf<Chapter>()
         for (url in urls) {
             val c = Chapter.create()
             c.url = url
@@ -117,7 +117,7 @@ class LibraryUpdateServiceTest {
     }
 
     private fun createManga(vararg urls: String): List<LibraryManga> {
-        val list = ArrayList<LibraryManga>()
+        val list = mutableListOf<LibraryManga>()
         for (url in urls) {
             val m = LibraryManga()
             m.url = url

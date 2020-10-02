@@ -1,9 +1,10 @@
 package eu.kanade.tachiyomi.extension
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import com.jakewharton.rxrelay.BehaviorRelay
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
-import eu.kanade.tachiyomi.data.preference.getOrDefault
+import eu.kanade.tachiyomi.data.preference.plusAssign
 import eu.kanade.tachiyomi.extension.api.ExtensionGithubApi
 import eu.kanade.tachiyomi.extension.model.Extension
 import eu.kanade.tachiyomi.extension.model.InstallStep
@@ -11,8 +12,10 @@ import eu.kanade.tachiyomi.extension.model.LoadResult
 import eu.kanade.tachiyomi.extension.util.ExtensionInstallReceiver
 import eu.kanade.tachiyomi.extension.util.ExtensionInstaller
 import eu.kanade.tachiyomi.extension.util.ExtensionLoader
+import eu.kanade.tachiyomi.source.Source
 import eu.kanade.tachiyomi.source.SourceManager
 import eu.kanade.tachiyomi.util.lang.launchNow
+import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.async
 import rx.Observable
 import uy.kohesive.injekt.Injekt
@@ -29,8 +32,8 @@ import uy.kohesive.injekt.api.get
  * @param preferences The application preferences.
  */
 class ExtensionManager(
-        private val context: Context,
-        private val preferences: PreferencesHelper = Injekt.get()
+    private val context: Context,
+    private val preferences: PreferencesHelper = Injekt.get()
 ) {
 
     /**
@@ -48,6 +51,8 @@ class ExtensionManager(
      */
     private val installedExtensionsRelay = BehaviorRelay.create<List<Extension.Installed>>()
 
+    private val iconMap = mutableMapOf<String, Drawable>()
+
     /**
      * List of the currently installed extensions.
      */
@@ -56,6 +61,14 @@ class ExtensionManager(
             field = value
             installedExtensionsRelay.call(value)
         }
+
+    fun getAppIconForSource(source: Source): Drawable? {
+        val pkgName = installedExtensions.find { ext -> ext.sources.any { it.id == source.id } }?.pkgName
+        if (pkgName != null) {
+            return iconMap[pkgName] ?: iconMap.getOrPut(pkgName) { context.packageManager.getApplicationIcon(pkgName) }
+        }
+        return null
+    }
 
     /**
      * Relay used to notify the available extensions.
@@ -107,16 +120,16 @@ class ExtensionManager(
         val extensions = ExtensionLoader.loadExtensions(context)
 
         installedExtensions = extensions
-                .filterIsInstance<LoadResult.Success>()
-                .map { it.extension }
+            .filterIsInstance<LoadResult.Success>()
+            .map { it.extension }
         installedExtensions
-                .flatMap { it.sources }
-                // overwrite is needed until the bundled sources are removed
-                .forEach { sourceManager.registerSource(it, true) }
+            .flatMap { it.sources }
+            // overwrite is needed until the bundled sources are removed
+            .forEach { sourceManager.registerSource(it, true) }
 
         untrustedExtensions = extensions
-                .filterIsInstance<LoadResult.Untrusted>()
-                .map { it.extension }
+            .filterIsInstance<LoadResult.Untrusted>()
+            .map { it.extension }
     }
 
     /**
@@ -148,6 +161,7 @@ class ExtensionManager(
             val extensions: List<Extension.Available> = try {
                 api.findExtensions()
             } catch (e: Exception) {
+                context.toast(e.message)
                 emptyList()
             }
 
@@ -162,6 +176,7 @@ class ExtensionManager(
      */
     private fun updatedInstalledExtensionsStatuses(availableExtensions: List<Extension.Available>) {
         if (availableExtensions.isEmpty()) {
+            preferences.extensionUpdatesCount().set(0)
             return
         }
 
@@ -186,6 +201,7 @@ class ExtensionManager(
         if (changed) {
             installedExtensions = mutInstalledExtensions
         }
+        updatePendingUpdatesCount()
     }
 
     /**
@@ -208,7 +224,7 @@ class ExtensionManager(
      */
     fun updateExtension(extension: Extension.Installed): Observable<InstallStep> {
         val availableExt = availableExtensions.find { it.pkgName == extension.pkgName }
-                ?: return Observable.empty()
+            ?: return Observable.empty()
         return installExtension(availableExt)
     }
 
@@ -242,8 +258,7 @@ class ExtensionManager(
         if (signature !in untrustedSignatures) return
 
         ExtensionLoader.trustedSignatures += signature
-        val preference = preferences.trustedSignatures()
-        preference.set(preference.getOrDefault() + signature)
+        preferences.trustedSignatures() += signature
 
         val nowTrustedExtensions = untrustedExtensions.filter { it.signatureHash == signature }
         untrustedExtensions -= nowTrustedExtensions
@@ -251,15 +266,15 @@ class ExtensionManager(
         val ctx = context
         launchNow {
             nowTrustedExtensions
-                    .map { extension ->
-                        async { ExtensionLoader.loadExtensionFromPkgName(ctx, extension.pkgName) }
+                .map { extension ->
+                    async { ExtensionLoader.loadExtensionFromPkgName(ctx, extension.pkgName) }
+                }
+                .map { it.await() }
+                .forEach { result ->
+                    if (result is LoadResult.Success) {
+                        registerNewExtension(result.extension)
                     }
-                    .map { it.await() }
-                    .forEach { result ->
-                        if (result is LoadResult.Success) {
-                            registerNewExtension(result.extension)
-                        }
-                    }
+                }
         }
     }
 
@@ -316,10 +331,12 @@ class ExtensionManager(
 
         override fun onExtensionInstalled(extension: Extension.Installed) {
             registerNewExtension(extension.withUpdateCheck())
+            updatePendingUpdatesCount()
         }
 
         override fun onExtensionUpdated(extension: Extension.Installed) {
             registerUpdatedExtension(extension.withUpdateCheck())
+            updatePendingUpdatesCount()
         }
 
         override fun onExtensionUntrusted(extension: Extension.Untrusted) {
@@ -328,6 +345,7 @@ class ExtensionManager(
 
         override fun onPackageUninstalled(pkgName: String) {
             unregisterExtension(pkgName)
+            updatePendingUpdatesCount()
         }
     }
 
@@ -342,4 +360,7 @@ class ExtensionManager(
         return this
     }
 
+    private fun updatePendingUpdatesCount() {
+        preferences.extensionUpdatesCount().set(installedExtensions.count { it.hasUpdate })
+    }
 }

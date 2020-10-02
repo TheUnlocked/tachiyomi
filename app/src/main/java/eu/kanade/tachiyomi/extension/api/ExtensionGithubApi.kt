@@ -1,57 +1,82 @@
 package eu.kanade.tachiyomi.extension.api
 
-import com.github.salomonbrys.kotson.fromJson
+import android.content.Context
 import com.github.salomonbrys.kotson.get
 import com.github.salomonbrys.kotson.int
 import com.github.salomonbrys.kotson.string
-import com.google.gson.Gson
 import com.google.gson.JsonArray
+import eu.kanade.tachiyomi.data.preference.PreferencesHelper
 import eu.kanade.tachiyomi.extension.model.Extension
-import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.network.NetworkHelper
-import eu.kanade.tachiyomi.network.await
+import eu.kanade.tachiyomi.extension.model.LoadResult
+import eu.kanade.tachiyomi.extension.util.ExtensionLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.Response
 import uy.kohesive.injekt.injectLazy
+import java.util.Date
 
 internal class ExtensionGithubApi {
 
-    private val network: NetworkHelper by injectLazy()
-
-    private val gson: Gson by injectLazy()
+    private val preferences: PreferencesHelper by injectLazy()
 
     suspend fun findExtensions(): List<Extension.Available> {
-        val call = GET("$REPO_URL/index.json")
+        val service: ExtensionGithubService = ExtensionGithubService.create()
 
         return withContext(Dispatchers.IO) {
-            parseResponse(network.client.newCall(call).await())
+            val response = service.getRepo()
+            parseResponse(response)
         }
     }
 
-    private fun parseResponse(response: Response): List<Extension.Available> {
-        val text = response.body?.use { it.string() } ?: return emptyList()
+    suspend fun checkForUpdates(context: Context): List<Extension.Installed> {
+        val extensions = findExtensions()
 
-        val json = gson.fromJson<JsonArray>(text)
+        preferences.lastExtCheck().set(Date().time)
 
-        return json.map { element ->
-            val name = element["name"].string.substringAfter("Tachiyomi: ")
-            val pkgName = element["pkg"].string
-            val apkName = element["apk"].string
-            val versionName = element["version"].string
-            val versionCode = element["code"].int
-            val lang = element["lang"].string
-            val icon = "$REPO_URL/icon/${apkName.replace(".apk", ".png")}"
+        val installedExtensions = ExtensionLoader.loadExtensions(context)
+            .filterIsInstance<LoadResult.Success>()
+            .map { it.extension }
 
-            Extension.Available(name, pkgName, versionName, versionCode, lang, apkName, icon)
+        val extensionsWithUpdate = mutableListOf<Extension.Installed>()
+        for (installedExt in installedExtensions) {
+            val pkgName = installedExt.pkgName
+            val availableExt = extensions.find { it.pkgName == pkgName } ?: continue
+
+            val hasUpdate = availableExt.versionCode > installedExt.versionCode
+            if (hasUpdate) {
+                extensionsWithUpdate.add(installedExt)
+            }
         }
+
+        return extensionsWithUpdate
+    }
+
+    private fun parseResponse(json: JsonArray): List<Extension.Available> {
+        return json
+            .filter { element ->
+                val versionName = element["version"].string
+                val libVersion = versionName.substringBeforeLast('.').toDouble()
+                libVersion >= ExtensionLoader.LIB_VERSION_MIN && libVersion <= ExtensionLoader.LIB_VERSION_MAX
+            }
+            .map { element ->
+                val name = element["name"].string.substringAfter("Tachiyomi: ")
+                val pkgName = element["pkg"].string
+                val apkName = element["apk"].string
+                val versionName = element["version"].string
+                val versionCode = element["code"].int
+                val lang = element["lang"].string
+                val nsfw = element["nsfw"].int == 1
+                val icon = "$REPO_URL_PREFIX/icon/${apkName.replace(".apk", ".png")}"
+
+                Extension.Available(name, pkgName, versionName, versionCode, lang, nsfw, apkName, icon)
+            }
     }
 
     fun getApkUrl(extension: Extension.Available): String {
-        return "$REPO_URL/apk/${extension.apkName}"
+        return "$REPO_URL_PREFIX/apk/${extension.apkName}"
     }
 
     companion object {
-        private const val REPO_URL = "https://raw.githubusercontent.com/inorichi/tachiyomi-extensions/repo"
+        const val BASE_URL = "https://raw.githubusercontent.com/"
+        const val REPO_URL_PREFIX = "${BASE_URL}inorichi/tachiyomi-extensions/repo/"
     }
 }

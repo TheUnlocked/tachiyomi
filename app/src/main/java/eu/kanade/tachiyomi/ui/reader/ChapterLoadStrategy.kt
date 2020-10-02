@@ -26,11 +26,21 @@ class ChapterLoadByNumber {
                 // If there is only one chapter for this number, use it
                 chaptersForNumber.size == 1 -> chaptersForNumber.first()
                 // Prefer a chapter of the same scanlator as the selected
-                else -> chaptersForNumber.find { it.scanlator == selectedChapter.scanlator }
+                else ->
+                    chaptersForNumber.find { it.scanlator == selectedChapter.scanlator }
                         ?: chaptersForNumber.first()
             }
             chapters.add(preferredChapter)
         }
         return chapters.sortedBy { it.chapter_number }
+    }
+}
+
+/**
+ * Load strategy using the chapter upload date. This ordering ignores scanlators
+ */
+class ChapterLoadByUploadDate() {
+    fun get(allChapters: List<Chapter>): List<Chapter> {
+        return allChapters.sortedBy { it.date_upload }
     }
 }
